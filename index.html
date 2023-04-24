@@ -18,6 +18,10 @@
 <script>
   const canvas = document.getElementById('pong');
   const ctx = canvas.getContext('2d');
+  canvas.addEventListener('touchstart', touchStart);
+  canvas.addEventListener('touchmove', touchMove);
+  canvas.addEventListener('touchend', touchEnd);
+  canvas.addEventListener('touchcancel', touchEnd);
   let borderColor = 'yellow';
   let leftPlayerRounds = 0;
   let rightPlayerRounds = 0;
@@ -51,6 +55,7 @@
       this.height = height;
       this.color = color;
       this.ySpeed = 0;
+      this.isTouched = false;
     }
 
     draw() {
@@ -65,130 +70,176 @@
     }
   }
 
-class Ball {
-  constructor(x, y, radius) {
-    this.x = x;
-    this.y = y;
-    this.radius = radius;
-    this.xSpeed = 3;
-    this.ySpeed = 3;
-  }
+    class Ball {
+    constructor(x, y, radius) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.xSpeed = 3;
+        this.ySpeed = 3;
+    }
 
-  draw() {
-    ctx.beginPath();
+    draw() {
+        ctx.beginPath();
+        ctx.fillStyle = 'white';
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    move() {
+        this.x += this.xSpeed;
+        this.y += this.ySpeed;
+
+        if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+        this.ySpeed = -this.ySpeed;
+        }
+    }
+    }
+
+    const paddleWidth = 20;
+    const paddleHeight = 100;
+    const leftPaddle = new Paddle(10, (canvas.height - paddleHeight) / 2, paddleWidth, paddleHeight, 'red');
+    const rightPaddle = new Paddle(canvas.width - 10 - paddleWidth, (canvas.height - paddleHeight) / 2, paddleWidth, paddleHeight, 'blue');
+    const ball = new Ball(canvas.width / 2, canvas.height / 2, 5);
+
+    function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    leftPaddle.draw();
+    rightPaddle.draw();
+    ball.draw();
+    drawScore();
+    drawRounds();
+    drawBorder();
+    }
+    function touchStart(event) {
+        event.preventDefault();
+        const touch = event.changedTouches[0];
+        const touchTarget = getTouchTarget(touch.clientX, touch.clientY);
+
+        if (touchTarget) {
+            touchTarget.isTouched = true;
+        }
+    }
+
+    function touchMove(event) {
+        event.preventDefault();
+        const touch = event.changedTouches[0];
+        const touchTarget = getTouchTarget(touch.clientX, touch.clientY);
+
+        if (touchTarget && touchTarget.isTouched) {
+            touchTarget.y = touch.clientY - touchTarget.height / 2;
+        }
+    }
+
+    function touchEnd(event) {
+    event.preventDefault();
+    leftPaddle.isTouched = false;
+    rightPaddle.isTouched = false;
+    }
+
+    function drawRounds() {
     ctx.fillStyle = 'white';
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  move() {
-    this.x += this.xSpeed;
-    this.y += this.ySpeed;
-
-    if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
-      this.ySpeed = -this.ySpeed;
+    ctx.font = '32px Arial';
+    ctx.fillText(leftPlayerRounds + ' - ' + rightPlayerRounds, canvas.width / 2 - 50, 40);
     }
-  }
-}
-
-const paddleWidth = 20;
-const paddleHeight = 100;
-const leftPaddle = new Paddle(10, (canvas.height - paddleHeight) / 2, paddleWidth, paddleHeight, 'red');
-const rightPaddle = new Paddle(canvas.width - 10 - paddleWidth, (canvas.height - paddleHeight) / 2, paddleWidth, paddleHeight, 'blue');
-const ball = new Ball(canvas.width / 2, canvas.height / 2, 5);
-
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  leftPaddle.draw();
-  rightPaddle.draw();
-  ball.draw();
-  drawScore();
-  drawRounds();
-  drawBorder();
-}
-function drawRounds() {
-  ctx.fillStyle = 'white';
-  ctx.font = '32px Arial';
-  ctx.fillText(leftPlayerRounds + ' - ' + rightPlayerRounds, canvas.width / 2 - 50, 40);
-}
-function drawBorder() {
-  ctx.strokeStyle = borderColor;
-  ctx.lineWidth = 25;
-  ctx.strokeRect(0, 0, canvas.width, canvas.height);
-}
-function drawScore() {
-  ctx.fillStyle = 'white';
-  ctx.font = '32px Arial';
-  ctx.fillText(leftPlayerScore, canvas.width / 4, 40);
-  ctx.fillText(rightPlayerScore, (canvas.width * 3) / 4, 40);
-}
-function update() {
-
-  if (keyState.w) {
-    leftPaddle.ySpeed = -5;
-  } else if (keyState.a) {
-    leftPaddle.ySpeed = 5;
-  } else {
-    leftPaddle.ySpeed = 0;
-  }
-
-  if (keyState.p) {
-    rightPaddle.ySpeed = -5;
-  } else if (keyState.ñ) {
-    rightPaddle.ySpeed = 5;
-  } else {
-    rightPaddle.ySpeed = 0;
-  }
-
-  leftPaddle.move();
-  rightPaddle.move();
-  
-
-  if (ball.x - ball.radius < leftPaddle.x + leftPaddle.width && ball.y > leftPaddle.y && ball.y < leftPaddle.y + leftPaddle.height) {
-    ball.xSpeed = Math.abs(ball.xSpeed);
-  }
-
-  if (ball.x + ball.radius > rightPaddle.x && ball.y > rightPaddle.y && ball.y < rightPaddle.y + rightPaddle.height) {
-    ball.xSpeed = -Math.abs(ball.xSpeed);
-  }
-
-
-  if (ball.x < 0) {
-    rightPlayerScore++;
-    borderColor = 'blue';
-    if (rightPlayerScore === roundLimit) {
-      rightPlayerRounds++;
-      rightPlayerScore = 0;
-      leftPlayerScore = 0;
+    function drawBorder() {
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 25;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
     }
-    ball.x = canvas.width / 2;
-    ball.y = canvas.height / 2;
-    ball.xSpeed = 3;
-  } else if (ball.x > canvas.width) {
-    leftPlayerScore++;
-    borderColor = 'red';
-    if (leftPlayerScore === roundLimit) {
-      leftPlayerRounds++;
-      leftPlayerScore = 0;
-      rightPlayerScore = 0;
+    function drawScore() {
+    ctx.fillStyle = 'white';
+    ctx.font = '32px Arial';
+    ctx.fillText(leftPlayerScore, canvas.width / 4, 40);
+    ctx.fillText(rightPlayerScore, (canvas.width * 3) / 4, 40);
     }
-    ball.x = canvas.width / 2;
-    ball.y = canvas.height / 2;
-    ball.xSpeed = -3;
-  }
+    function getTouchTarget(x, y) {
+        if (
+            x >= leftPaddle.x &&
+            x <= leftPaddle.x + leftPaddle.width &&
+            y >= leftPaddle.y &&
+            y <= leftPaddle.y + leftPaddle.height
+        ) {
+            return leftPaddle;
+        } else if (
+            x >= rightPaddle.x &&
+            x <= rightPaddle.x + rightPaddle.width &&
+            y >= rightPaddle.y &&
+            y <= rightPaddle.y + rightPaddle.height
+        ) {
+            return rightPaddle;
+        }
 
-  ball.move();
-}
+        return null;
+    }
 
-function loop() {
-  draw();
-  update();
-  requestAnimationFrame(loop);
-}
+    function update() {
+
+    if (keyState.w) {
+        leftPaddle.ySpeed = -5;
+    } else if (keyState.a) {
+        leftPaddle.ySpeed = 5;
+    } else {
+        leftPaddle.ySpeed = 0;
+    }
+
+    if (keyState.p) {
+        rightPaddle.ySpeed = -5;
+    } else if (keyState.ñ) {
+        rightPaddle.ySpeed = 5;
+    } else {
+        rightPaddle.ySpeed = 0;
+    }
+
+    leftPaddle.move();
+    rightPaddle.move();
+    
+
+    if (ball.x - ball.radius < leftPaddle.x + leftPaddle.width && ball.y > leftPaddle.y && ball.y < leftPaddle.y + leftPaddle.height) {
+        ball.xSpeed = Math.abs(ball.xSpeed);
+    }
+
+    if (ball.x + ball.radius > rightPaddle.x && ball.y > rightPaddle.y && ball.y < rightPaddle.y + rightPaddle.height) {
+        ball.xSpeed = -Math.abs(ball.xSpeed);
+    }
+
+
+    if (ball.x < 0) {
+        rightPlayerScore++;
+        borderColor = 'blue';
+        if (rightPlayerScore === roundLimit) {
+        rightPlayerRounds++;
+        rightPlayerScore = 0;
+        leftPlayerScore = 0;
+        }
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.xSpeed = 3;
+    } else if (ball.x > canvas.width) {
+        leftPlayerScore++;
+        borderColor = 'red';
+        if (leftPlayerScore === roundLimit) {
+        leftPlayerRounds++;
+        leftPlayerScore = 0;
+        rightPlayerScore = 0;
+        }
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.xSpeed = -3;
+    }
+
+    ball.move();
+    }
+
+    function loop() {
+    draw();
+    update();
+    requestAnimationFrame(loop);
+    }
 
 
 
-loop();
+    loop();
 
 
 
