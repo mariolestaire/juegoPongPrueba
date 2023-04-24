@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<title>Pong</title>
+<style>
+  canvas {
+    display: block;
+    margin: auto;
+    background-color: black;
+  }
+</style>
+</head>
+<body>
+<canvas id="pong" width="600" height="400"></canvas>
+<script>
+  const canvas = document.getElementById('pong');
+  const ctx = canvas.getContext('2d');
+  let borderColor = 'yellow';
+  let leftPlayerRounds = 0;
+  let rightPlayerRounds = 0;
+  const roundLimit = 5;
+  const keyState = {
+    w: false,
+    a: false,
+    p: false,
+    ñ: false
+  };
+  window.addEventListener('keydown', (event) => {
+    if (keyState.hasOwnProperty(event.key.toLowerCase())) {
+      keyState[event.key.toLowerCase()] = true;
+    }
+  });
+
+  window.addEventListener('keyup', (event) => {
+    if (keyState.hasOwnProperty(event.key.toLowerCase())) {
+      keyState[event.key.toLowerCase()] = false;
+    }
+  });
+  let leftPlayerScore = 0;
+  let rightPlayerScore = 0;
+  // Código para dibujar y mover la pelota, paletas y actualizar el juego aquí
+
+  class Paddle {
+    constructor(x, y, width, height, color) {
+      this.x = x;
+      this.y = y;
+      this.width = width;
+      this.height = height;
+      this.color = color;
+      this.ySpeed = 0;
+    }
+
+    draw() {
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+
+    move() {
+      this.y += this.ySpeed;
+      if (this.y < 0) this.y = 0;
+      if (this.y + this.height > canvas.height) this.y = canvas.height - this.height;
+    }
+  }
+
+class Ball {
+  constructor(x, y, radius) {
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+    this.xSpeed = 3;
+    this.ySpeed = 3;
+  }
+
+  draw() {
+    ctx.beginPath();
+    ctx.fillStyle = 'white';
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  move() {
+    this.x += this.xSpeed;
+    this.y += this.ySpeed;
+
+    if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+      this.ySpeed = -this.ySpeed;
+    }
+  }
+}
+
+const paddleWidth = 20;
+const paddleHeight = 100;
+const leftPaddle = new Paddle(10, (canvas.height - paddleHeight) / 2, paddleWidth, paddleHeight, 'red');
+const rightPaddle = new Paddle(canvas.width - 10 - paddleWidth, (canvas.height - paddleHeight) / 2, paddleWidth, paddleHeight, 'blue');
+const ball = new Ball(canvas.width / 2, canvas.height / 2, 5);
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  leftPaddle.draw();
+  rightPaddle.draw();
+  ball.draw();
+  drawScore();
+  drawRounds();
+  drawBorder();
+}
+function drawRounds() {
+  ctx.fillStyle = 'white';
+  ctx.font = '32px Arial';
+  ctx.fillText(leftPlayerRounds + ' - ' + rightPlayerRounds, canvas.width / 2 - 50, 40);
+}
+function drawBorder() {
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 25;
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+}
+function drawScore() {
+  ctx.fillStyle = 'white';
+  ctx.font = '32px Arial';
+  ctx.fillText(leftPlayerScore, canvas.width / 4, 40);
+  ctx.fillText(rightPlayerScore, (canvas.width * 3) / 4, 40);
+}
+function update() {
+
+  if (keyState.w) {
+    leftPaddle.ySpeed = -5;
+  } else if (keyState.a) {
+    leftPaddle.ySpeed = 5;
+  } else {
+    leftPaddle.ySpeed = 0;
+  }
+
+  if (keyState.p) {
+    rightPaddle.ySpeed = -5;
+  } else if (keyState.ñ) {
+    rightPaddle.ySpeed = 5;
+  } else {
+    rightPaddle.ySpeed = 0;
+  }
+
+  leftPaddle.move();
+  rightPaddle.move();
+  
+
+  if (ball.x - ball.radius < leftPaddle.x + leftPaddle.width && ball.y > leftPaddle.y && ball.y < leftPaddle.y + leftPaddle.height) {
+    ball.xSpeed = Math.abs(ball.xSpeed);
+  }
+
+  if (ball.x + ball.radius > rightPaddle.x && ball.y > rightPaddle.y && ball.y < rightPaddle.y + rightPaddle.height) {
+    ball.xSpeed = -Math.abs(ball.xSpeed);
+  }
+
+
+  if (ball.x < 0) {
+    rightPlayerScore++;
+    borderColor = 'blue';
+    if (rightPlayerScore === roundLimit) {
+      rightPlayerRounds++;
+      rightPlayerScore = 0;
+      leftPlayerScore = 0;
+    }
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    ball.xSpeed = 3;
+  } else if (ball.x > canvas.width) {
+    leftPlayerScore++;
+    borderColor = 'red';
+    if (leftPlayerScore === roundLimit) {
+      leftPlayerRounds++;
+      leftPlayerScore = 0;
+      rightPlayerScore = 0;
+    }
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    ball.xSpeed = -3;
+  }
+
+  ball.move();
+}
+
+function loop() {
+  draw();
+  update();
+  requestAnimationFrame(loop);
+}
+
+
+
+loop();
+
+
+
+</script>
+</body>
+</html>
